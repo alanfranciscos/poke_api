@@ -1,26 +1,27 @@
+import concurrent.futures
 from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import requests
 
 
+def get_pokemon_type(pokemon_id):
+    response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}")
+    return response.json().get("types")[0].get("type").get("name")
+
+
 def get_pokemon_type_list(quantity: int) -> List[str]:
-    """Get a list of pokemons type by quantity"""
-    quantity += 1
-    pokemons = []
-    for i in range(1, quantity):
-        _pokemon = requests.get(
-            f"https://pokeapi.co/api/v2/pokemon/{i}"
-        ).json()
-        pokemons.append(_pokemon.get("types")[0].get("type").get("name"))
-    return pokemons
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        pokemons_types = list(
+            executor.map(get_pokemon_type, range(1, quantity + 1))
+        )
+    return pokemons_types
 
 
 def get_quantity_pokemon_by_type(pokemons: List[str]) -> Dict:
-    """Get the quantity of pokemons by type"""
     pokemon_dict = {}
     for pokemon in pokemons:
-        if pokemon in pokemon_dict.keys():
+        if pokemon in pokemon_dict:
             pokemon_dict[pokemon] += 1
         else:
             pokemon_dict[pokemon] = 1
@@ -28,18 +29,12 @@ def get_quantity_pokemon_by_type(pokemons: List[str]) -> Dict:
 
 
 def order_type_pokemon_to_chart(pokemon_dict: Dict, desc: bool) -> Dict:
-    """Order the pokemons by type"""
     return dict(
-        sorted(
-            pokemon_dict.items(),
-            key=lambda item: item[1],
-            reverse=desc,
-        )
+        sorted(pokemon_dict.items(), key=lambda item: item[1], reverse=desc)
     )
 
 
 def plot_bar_chart(pokemon_dict: Dict):
-    """Plot a bar chart with the pokemons by type"""
     fig, ax = plt.subplots()
     fig.set_figwidth(10)
 
@@ -51,13 +46,13 @@ def plot_bar_chart(pokemon_dict: Dict):
 
 
 def main():
-    pokemons = get_pokemon_type_list(100)
-
-    pokemons_type = get_quantity_pokemon_by_type(pokemons)
+    pokemons_types = get_pokemon_type_list(100)
+    pokemons_type_quantity = get_quantity_pokemon_by_type(pokemons_types)
     pokemon_type_sorted = order_type_pokemon_to_chart(
-        pokemon_dict=pokemons_type, desc=True
+        pokemons_type_quantity, desc=True
     )
     plot_bar_chart(pokemon_type_sorted)
 
 
-main()
+if __name__ == "__main__":
+    main()
