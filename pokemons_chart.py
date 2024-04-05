@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 import matplotlib.pyplot as plt
-import pokebase as pb
+import requests
 
 
 def get_pokemon_type_list(quantity: int) -> List[str]:
@@ -9,7 +9,10 @@ def get_pokemon_type_list(quantity: int) -> List[str]:
     quantity += 1
     pokemons = []
     for i in range(1, quantity):
-        pokemons.append(pb.pokemon(i).types[0].type.name)
+        _pokemon = requests.get(
+            f"https://pokeapi.co/api/v2/pokemon/{i}"
+        ).json()
+        pokemons.append(_pokemon.get("types")[0].get("type").get("name"))
     return pokemons
 
 
